@@ -1,0 +1,19 @@
+# 编译产物
+collect
+*.o
+*.a
+*.so
+*.d
+
+# 日志与运行时数据
+*.log
+*.dat
+*.db
+*.sqlite
+
+# 编辑器/系统
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
