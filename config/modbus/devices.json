@@ -1,0 +1,248 @@
+{
+  "devices": [
+    {
+      "id": "load_meter",
+      "template": "amc_meter",
+      "transport": "rtu",
+      "rtu_device": "/usr/dev/serial/com3",
+      "rtu_baud": 9600,
+      "slave": 1,
+      "mysql_table": "load_meter",
+      "poll_ms": 600,
+      "inter_frame_ms": 5,
+      "default_pt": 1,
+      "default_ct": 1,
+      "pt_ct_sync": {
+        "enabled": true,
+        "read_reg": 3,
+        "min_value": 1,
+        "max_value": 30000
+      },
+      "comm": {
+        "enabled": true,
+        "probe_addr": 3,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0,
+        "com_alarm_addr": 3,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "dg_meter",
+      "template": "amc_meter",
+      "transport": "rtu",
+      "rtu_device": "/usr/dev/serial/com3",
+      "rtu_baud": 9600,
+      "slave": 2,
+      "mysql_table": "dg_meter",
+      "poll_ms": 600,
+      "inter_frame_ms": 5,
+      "default_pt": 1,
+      "default_ct": 1,
+      "pt_ct_sync": {
+        "enabled": true,
+        "read_reg": 3,
+        "min_value": 1,
+        "max_value": 30000
+      },
+      "comm": {
+        "enabled": true,
+        "probe_addr": 3,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0,
+        "com_alarm_addr": 4,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "pv_meter",
+      "template": "amc_meter",
+      "transport": "rtu",
+      "rtu_device": "/usr/dev/serial/com4",
+      "rtu_baud": 9600,
+      "slave": 1,
+      "mysql_table": "pv_meter",
+      "poll_ms": 600,
+      "inter_frame_ms": 5,
+      "default_pt": 1,
+      "default_ct": 1,
+      "pt_ct_sync": {
+        "enabled": true,
+        "read_reg": 3,
+        "min_value": 1,
+        "max_value": 30000
+      },
+      "comm": {
+        "enabled": true,
+        "probe_addr": 3,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0,
+        "com_alarm_addr": 5,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "ess_meter",
+      "template": "amc_meter",
+      "transport": "rtu",
+      "rtu_device": "/usr/dev/serial/com4",
+      "rtu_baud": 9600,
+      "slave": 2,
+      "mysql_table": "ess_meter",
+      "poll_ms": 600,
+      "inter_frame_ms": 5,
+      "default_pt": 1,
+      "default_ct": 1,
+      "pt_ct_sync": {
+        "enabled": true,
+        "read_reg": 3,
+        "min_value": 1,
+        "max_value": 30000
+      },
+      "comm": {
+        "enabled": true,
+        "probe_addr": 3,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0,
+        "com_alarm_addr": 6,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "sun_pv",
+      "template": "sun_pv",
+      "transport": "rtu",
+      "rtu_device": "/usr/dev/serial/com1",
+      "rtu_baud": 9600,
+      "slave": 1,
+      "mysql_table": "sunpv",
+      "table_suffix": 1,
+      "count_qt_addr": 617,
+      "poll_ms": 600,
+      "inter_frame_ms": 10,
+      "comm": {
+        "enabled": true,
+        "probe_addr": 4999,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0,
+        "com_alarm_addr": 12,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "agc",
+      "template": "agc",
+      "transport": "rtu",
+      "rtu_device": "/usr/dev/serial/com2",
+      "rtu_baud": 9600,
+      "slave": 1,
+      "mysql_table": "agc",
+      "count_qt_addr": 707,
+      "poll_ms": 600,
+      "inter_frame_ms": 10,
+      "comm": {
+        "enabled": true,
+        "probe_addr": 500,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0,
+        "com_alarm_addr": 16,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "pcs_smarten",
+      "template": "pcs_smarten",
+      "transport": "tcp",
+      "tcp_ip": "192.168.1.201",
+      "tcp_port": 502,
+      "slave": 1,
+      "mysql_table": "pcs",
+      "poll_ms": 600,
+      "inter_frame_ms": 20,
+      "comm": {
+        "enabled": true,
+        "probe_addr": 40164,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0,
+        "com_alarm_addr": 2,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "bamu_stack",
+      "template": "bamu_stack",
+      "transport": "tcp",
+      "tcp_ip": "192.168.1.210",
+      "tcp_port": 502,
+      "slave": 1,
+      "mysql_table": "bamu",
+      "count_qt_addr": 708,
+      "poll_ms": 600,
+      "inter_frame_ms": 20,
+      "comm": {
+        "enabled": true,
+        "probe_addr": 1,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0,
+        "com_alarm_addr": 1,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "bamu_bms",
+      "template": "bamu_bms",
+      "transport": "tcp",
+      "tcp_ip": "192.168.1.210",
+      "tcp_port": 502,
+      "slave": 1,
+      "mysql_table": "bms",
+      "table_suffix": 1,
+      "poll_ms": 600,
+      "inter_frame_ms": 20,
+      "comm": {
+        "enabled": true,
+        "mysql_online_addr": 0,
+        "com_alarm_table": "com_alarm"
+      }
+    },
+    {
+      "id": "bamu_air",
+      "template": "bamu_air",
+      "transport": "tcp",
+      "tcp_ip": "192.168.1.210",
+      "tcp_port": 502,
+      "slave": 1,
+      "mysql_table": "air",
+      "table_suffix": 1,
+      "inter_frame_ms": 20,
+      "comm": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "dido",
+      "template": "dido",
+      "transport": "tcp",
+      "tcp_ip": "127.0.0.1",
+      "tcp_port": 5020,
+      "slave": 1,
+      "mysql_table": "dodi",
+      "poll_ms": 500,
+      "comm": {
+        "enabled": true,
+        "probe_addr": 100,
+        "probe_count": 1,
+        "fail_threshold": 3,
+        "mysql_online_addr": 0
+      }
+    }
+  ]
+}

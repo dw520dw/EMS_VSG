@@ -1,0 +1,36 @@
+{
+  "read": {
+    "fields": [
+      { "name": "Online", "type": "virtual_comm" },
+      { "name": "ABVoltage", "type": "u16", "fc": 4, "address": 501 },
+      { "name": "BCVoltage", "type": "u16", "fc": 4, "address": 502 },
+      { "name": "CAVoltage", "type": "u16", "fc": 4, "address": 503 },
+      { "name": "APhaseVoltage", "type": "u16", "fc": 4, "address": 504 },
+      { "name": "BPhaseVoltage", "type": "u16", "fc": 4, "address": 505 },
+      { "name": "CPhaseVoltage", "type": "u16", "fc": 4, "address": 506 },
+      { "name": "AFrequency", "type": "i16", "scale": 0.01, "fc": 4, "address": 507 },
+      { "name": "BFrequency", "type": "i16", "scale": 0.01, "fc": 4, "address": 508 },
+      { "name": "CFrequency", "type": "i16", "scale": 0.01, "fc": 4, "address": 509 },
+      { "name": "APhaseCurrent", "type": "i16", "fc": 4, "address": 513 },
+      { "name": "BPhaseCurrent", "type": "i16", "fc": 4, "address": 514 },
+      { "name": "CPhaseCurrent", "type": "i16", "fc": 4, "address": 515 },
+      { "name": "APhaseActivePower", "type": "i16", "fc": 4, "address": 516 },
+      { "name": "BPhaseActivePower", "type": "i16", "fc": 4, "address": 517 },
+      { "name": "CPhaseActivePower", "type": "i16", "fc": 4, "address": 518 },
+      { "name": "TotalActivePower", "type": "i16", "fc": 4, "address": 519 },
+      { "name": "APhaseReactivePower", "type": "i16", "fc": 4, "address": 520 },
+      { "name": "BPhaseReactivePower", "type": "i16", "fc": 4, "address": 521 },
+      { "name": "CPhaseReactivePower", "type": "i16", "fc": 4, "address": 522 },
+      { "name": "TotalReactivePower", "type": "i16", "fc": 4, "address": 523 },
+      { "name": "APhaseApparentPower", "type": "i16", "fc": 4, "address": 524 },
+      { "name": "BPhaseApparentPower", "type": "i16", "fc": 4, "address": 525 },
+      { "name": "CPhaseApparentPower", "type": "i16", "fc": 4, "address": 526 },
+      { "name": "TotalApparentPower", "type": "i16", "fc": 4, "address": 527 },
+      { "name": "TotalActiveEnergy", "type": "u32_hi_lo", "fc": 4, "address": 536 },
+      { "name": "TotalReactiveEnergy", "type": "u32_hi_lo", "fc": 4, "address": 528 },
+      { "name": "TotalPowerFactor", "type": "i16", "scale": 0.01, "fc": 4, "address": 538 },
+      { "name": "EngineOilLevel", "type": "i16", "scale": 0.1, "fc": 4, "address": 615 }
+    ]
+  },
+  "sink": { "mode": "sequential", "base_addr": 0 }
+}

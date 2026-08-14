@@ -1,0 +1,36 @@
+{
+  "read": {
+    "fields": [
+      { "name": "Online", "type": "virtual_comm" },
+      { "name": "APhaseVoltage", "type": "u16", "scale": 0.1, "pt_exp": 1, "fc": 3, "address": "0x100" },
+      { "name": "BPhaseVoltage", "type": "u16", "scale": 0.1, "pt_exp": 1, "fc": 3, "address": "0x101" },
+      { "name": "CPhaseVoltage", "type": "u16", "scale": 0.1, "pt_exp": 1, "fc": 3, "address": "0x102" },
+      { "name": "ABVoltage", "type": "u16", "scale": 0.1, "pt_exp": 1, "fc": 3, "address": "0x103" },
+      { "name": "BCVoltage", "type": "u16", "scale": 0.1, "pt_exp": 1, "fc": 3, "address": "0x104" },
+      { "name": "CAVoltage", "type": "u16", "scale": 0.1, "pt_exp": 1, "fc": 3, "address": "0x105" },
+      { "name": "APhaseCurrent", "type": "i16", "scale": 0.001, "ct_exp": 1, "fc": 3, "address": "0x106" },
+      { "name": "BPhaseCurrent", "type": "i16", "scale": 0.001, "ct_exp": 1, "fc": 3, "address": "0x107" },
+      { "name": "CPhaseCurrent", "type": "i16", "scale": 0.001, "ct_exp": 1, "fc": 3, "address": "0x108" },
+      { "name": "APhaseActivePower", "type": "i16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x109" },
+      { "name": "BPhaseActivePower", "type": "i16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x10A" },
+      { "name": "CPhaseActivePower", "type": "i16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x10B" },
+      { "name": "TotalActivePower", "type": "i16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x10C" },
+      { "name": "APhaseReactivePower", "type": "i16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x10D" },
+      { "name": "BPhaseReactivePower", "type": "i16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x10E" },
+      { "name": "CPhaseReactivePower", "type": "i16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x10F" },
+      { "name": "TotalReactivePower", "type": "i16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x110" },
+      { "name": "APhaseApparentPower", "type": "u16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x115" },
+      { "name": "BPhaseApparentPower", "type": "u16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x116" },
+      { "name": "CPhaseApparentPower", "type": "u16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x117" },
+      { "name": "TotalApparentPower", "type": "u16", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x118" },
+      { "name": "APowerFactor", "type": "i16", "scale": 0.001, "fc": 3, "address": "0x111" },
+      { "name": "BPowerFactor", "type": "i16", "scale": 0.001, "fc": 3, "address": "0x112" },
+      { "name": "CPowerFactor", "type": "i16", "scale": 0.001, "fc": 3, "address": "0x113" },
+      { "name": "TotalPowerFactor", "type": "i16", "scale": 0.001, "fc": 3, "address": "0x114" },
+      { "name": "Frequency", "type": "u16", "scale": 0.01, "fc": 3, "address": "0x119" },
+      { "name": "AbsorbActiveEnergyPrimary", "type": "u32_hi_lo", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x3F" },
+      { "name": "ReleaseActiveEnergyPrimary", "type": "u32_hi_lo", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x41" }
+    ]
+  },
+  "sink": { "mode": "sequential", "base_addr": 0 }
+}
