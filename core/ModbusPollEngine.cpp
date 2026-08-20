@@ -1,5 +1,5 @@
 /**
- * 配置驱动采集引擎：Telegraf 式绝对地址读 + sink 写库。
+ * 配置驱动采集引擎：Telegraf 式绝对地址读 + 独立写库映射。
  */
 
 #include "ModbusPollEngine.h"
@@ -504,35 +504,15 @@ void ModbusPollEngine::decodePoints()
 
 void ModbusPollEngine::writeRealtime(IDataSink& sink)
 {
+    // 写库映射来自 config/modbus/sink/<template>.json 物化的 write_points（显式 {name,addr}）
     std::vector<std::pair<int, double>> points;
-    points.reserve(profile_.points.size());
-    int seq = 0;
-    for (const auto& pt : profile_.points)
+    points.reserve(profile_.write_points.size());
+    for (const auto& wp : profile_.write_points)
     {
-        if (!pt.write_mysql)
-        {
-            continue;
-        }
-
-        int addr = -1;
-        if (profile_.sink.mode == ModbusSinkMode::Sequential)
-        {
-            addr = profile_.sink.base_addr + seq;
-            ++seq;
-        }
-        else
-        {
-            addr = pt.db_addr;
-        }
-        if (addr < 0)
-        {
-            continue;
-        }
-
-        const auto it = values_.find(pt.name);
+        const auto it = values_.find(wp.name);
         if (it != values_.end())
         {
-            points.emplace_back(addr, it->second);
+            points.emplace_back(wp.addr, it->second);
         }
     }
     sink.updateRealtime(profile_.resolvedMysqlTable(), points);

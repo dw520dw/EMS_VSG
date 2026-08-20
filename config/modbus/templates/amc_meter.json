@@ -31,6 +31,5 @@
       { "name": "AbsorbActiveEnergyPrimary", "type": "u32_hi_lo", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x3F" },
       { "name": "ReleaseActiveEnergyPrimary", "type": "u32_hi_lo", "scale": 0.001, "pt_exp": 1, "ct_exp": 1, "fc": 3, "address": "0x41" }
     ]
-  },
-  "sink": { "mode": "sequential", "base_addr": 0 }
+  }
 }

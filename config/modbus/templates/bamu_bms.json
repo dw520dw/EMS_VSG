@@ -78,6 +78,5 @@
       { "name": "VolCollectDisconnectAlarm", "type": "bit", "fc": 2, "address": "0x11e", "cluster_stride": 100 },
       { "name": "CurrCollectDisconnectAlarm", "type": "bit", "fc": 2, "address": "0x11f", "cluster_stride": 100 }
     ]
-  },
-  "sink": { "mode": "sequential", "base_addr": 0 }
+  }
 }

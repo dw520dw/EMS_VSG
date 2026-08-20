@@ -15,7 +15,8 @@
  * 配置驱动的 Modbus 采集引擎（只写实时库，经 IDataSink 抽象落库）。
  *
  * 读层：Telegraf 式 fields（fc/address/type/scale），自动合并连续地址读请求。
- * 写库层：sink.sequential 或 explicit；引擎不依赖具体存储实现。
+ * 写库层：profile.write_points（config/modbus/sink/<template>.json 显式 {name,addr}）；
+ *         引擎不依赖具体存储实现。
  */
 class ModbusPollEngine {
 public:

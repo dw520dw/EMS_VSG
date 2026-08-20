@@ -36,6 +36,7 @@ SRCS := \
 	core/ModbusPollEngine.cpp \
 	db/MySQLDB_1.cpp \
 	db/logger.cpp \
+	db/crash_handler.cpp \
 	main.cpp
 
 TARGET := collect

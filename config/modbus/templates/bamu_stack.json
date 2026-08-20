@@ -98,6 +98,5 @@
       { "name": "CurrCollectDisconnectAlarm", "type": "bit", "fc": 2, "address": "0x50" },
       { "name": "Fault", "type": "bit", "fc": 2, "address": "0x39" }
     ]
-  },
-  "sink": { "mode": "sequential", "base_addr": 0 }
+  }
 }

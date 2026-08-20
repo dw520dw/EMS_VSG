@@ -6,14 +6,36 @@
 #include "MySQLDB_1.h"
 #include "PCS_Smarten.h"
 #include "SunPv.h"
+#include "crash_handler.h"
 #include "logger.h"
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <thread>
+
+namespace {
+
+std::string readRss()
+{
+    std::ifstream f("/proc/self/status");
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.rfind("VmRSS:", 0) == 0) {
+            return line;
+        }
+    }
+    return "VmRSS: N/A";
+}
+
+}  // namespace
 
 int main(int argc, char* argv[])
 {
+    // 崩溃诊断必须最先安装：SIGPIPE 忽略 + 崩溃信号/未捕获异常记录到 collect.log
+    installCrashHandler();
+
     const char* configPath = Config::MODBUS_DEVICES_CONFIG;
     if (argc >= 2 && argv[1] != nullptr && argv[1][0] != '\0') {
         configPath = argv[1];
@@ -53,8 +75,11 @@ int main(int argc, char* argv[])
     t7.detach();
 
     std::cout << "所有采集线程已启动（无 Influx），config=" << configPath << std::endl;
+    // 主循环：每 10 分钟把进程 RSS 打进 collect.log。
+    // 若 RSS 随时间单调上升并逼近内存上限，即可确认“泄漏 → OOM 被杀”。
     while (true) {
-        std::this_thread::sleep_for(std::chrono::hours(24));
+        std::this_thread::sleep_for(std::chrono::minutes(10));
+        LOG_ACTION("周期内存监控 " + readRss());
     }
     return 0;
 }

@@ -1,0 +1,18 @@
+{
+  "field_maps": {
+    "dido": [
+      { "name": "ChiFa_Switch_DI", "addr": 1 },
+      { "name": "PV_Switch_DI", "addr": 2 },
+      { "name": "Load_Switch_DI", "addr": 3 },
+      { "name": "ChiFa_Singn_DI", "addr": 8 },
+      { "name": "YellowLight", "addr": 9 },
+      { "name": "GreenLight", "addr": 10 },
+      { "name": "RedLight", "addr": 11 },
+      { "name": "ChiFa_Switch_DO", "addr": 12 },
+      { "name": "QacSplit", "addr": 13 }
+    ]
+  },
+  "tables": [
+    { "mysql": "dodi", "field_map": "dido" }
+  ]
+}

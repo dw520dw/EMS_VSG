@@ -15,7 +15,7 @@ namespace Config {
     const int BAMU_QT_CONFIG_POLL_INTERVAL = 10;
 
     // Modbus：连接见 devices.json，点表见 templates/
-    const char* const MODBUS_DEVICES_CONFIG = "config/modbus/devices.json";
+    const char* const MODBUS_DEVICES_CONFIG = "/userdata/iEMS-MG1000/config/modbus/devices.json";
 
     const char* const LOAD_METER_DEVICE_ID = "load_meter";
     const char* const DG_METER_DEVICE_ID   = "dg_meter";

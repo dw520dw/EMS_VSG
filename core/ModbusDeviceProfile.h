@@ -25,7 +25,7 @@ enum class ModbusPointType {
 /**
  * 读层测点（Telegraf 风格）：fc + address + type + scale/bias。
  * 公式：value = raw * scale * (pt ^ pt_exp) * (ct ^ ct_exp) + bias
- * 写库由 ModbusSinkDef 决定（顺序或显式 addr）。
+ * 写库由 profile.write_points（config/modbus/sink/<template>.json）决定，与读层解耦。
  */
 struct ModbusPointDef {
     std::string name;          // 可选；供 hook getValue/setValue；空则加载器生成 _fN
@@ -38,19 +38,12 @@ struct ModbusPointDef {
     double bias = 0.0;
     int pt_exp = 0;
     int ct_exp = 0;
-    int db_addr = -1;          // 仅 sink=explicit 时使用
-    bool write_mysql = true;
 };
 
-/** 写库层：与读层解耦 */
-enum class ModbusSinkMode {
-    Sequential,  // 按 fields 中 write_mysql 顺序：addr = base_addr + 0,1,2...
-    Explicit     // 每点自带 db_addr（稀疏表，如 dido）
-};
-
-struct ModbusSinkDef {
-    ModbusSinkMode mode = ModbusSinkMode::Explicit;
-    int base_addr = 0;
+/** 写库映射点：来源 config/modbus/sink/<template>.json（field_maps 的 {name, addr}） */
+struct ModbusWritePoint {
+    std::string name;  // 对应 read.fields[].name（或 hook setValue 填充的 virtual 点）
+    int addr = -1;     // MySQL 表内地址（显式，不再由读侧顺序推导）
 };
 
 /** 通讯探测与 Online / com_alarm 写库策略 */
@@ -105,8 +98,8 @@ struct ModbusDeviceProfile {
     ModbusCommAlarmDef comm;
     ModbusEnableDef enable;
     ModbusPtCtSyncDef pt_ct_sync;
-    ModbusSinkDef sink;
-    std::vector<ModbusPointDef> points;  // 读层 fields
+    std::vector<ModbusWritePoint> write_points;  // 写库映射（独立 sink 配置物化）
+    std::vector<ModbusPointDef> points;          // 读层 fields
 
     std::string resolvedMysqlTable() const
     {

@@ -1,0 +1,41 @@
+{
+  "field_maps": {
+    "amc_meter": [
+      { "name": "Online", "addr": 0 },
+      { "name": "APhaseVoltage", "addr": 1 },
+      { "name": "BPhaseVoltage", "addr": 2 },
+      { "name": "CPhaseVoltage", "addr": 3 },
+      { "name": "ABVoltage", "addr": 4 },
+      { "name": "BCVoltage", "addr": 5 },
+      { "name": "CAVoltage", "addr": 6 },
+      { "name": "APhaseCurrent", "addr": 7 },
+      { "name": "BPhaseCurrent", "addr": 8 },
+      { "name": "CPhaseCurrent", "addr": 9 },
+      { "name": "APhaseActivePower", "addr": 10 },
+      { "name": "BPhaseActivePower", "addr": 11 },
+      { "name": "CPhaseActivePower", "addr": 12 },
+      { "name": "TotalActivePower", "addr": 13 },
+      { "name": "APhaseReactivePower", "addr": 14 },
+      { "name": "BPhaseReactivePower", "addr": 15 },
+      { "name": "CPhaseReactivePower", "addr": 16 },
+      { "name": "TotalReactivePower", "addr": 17 },
+      { "name": "APhaseApparentPower", "addr": 18 },
+      { "name": "BPhaseApparentPower", "addr": 19 },
+      { "name": "CPhaseApparentPower", "addr": 20 },
+      { "name": "TotalApparentPower", "addr": 21 },
+      { "name": "APowerFactor", "addr": 22 },
+      { "name": "BPowerFactor", "addr": 23 },
+      { "name": "CPowerFactor", "addr": 24 },
+      { "name": "TotalPowerFactor", "addr": 25 },
+      { "name": "Frequency", "addr": 26 },
+      { "name": "AbsorbActiveEnergyPrimary", "addr": 27 },
+      { "name": "ReleaseActiveEnergyPrimary", "addr": 28 }
+    ]
+  },
+  "tables": [
+    { "mysql": "load_meter", "field_map": "amc_meter" },
+    { "mysql": "dg_meter", "field_map": "amc_meter" },
+    { "mysql": "pv_meter", "field_map": "amc_meter" },
+    { "mysql": "ess_meter", "field_map": "amc_meter" }
+  ]
+}

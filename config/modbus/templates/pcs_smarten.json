@@ -190,20 +190,19 @@
       { "name": "BmsShutdownFault", "type": "reg_bit", "bit": 0, "fc": 3, "address": "0xA476" },
       { "name": "BmsCommConnectionTimeout", "type": "reg_bit", "bit": 1, "fc": 3, "address": "0xA476" },
       { "name": "BmsDryContactFault", "type": "reg_bit", "bit": 2, "fc": 3, "address": "0xA476" },
-      { "name": "_st41726_b1", "type": "reg_bit", "bit": 1, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b2", "type": "reg_bit", "bit": 2, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b3", "type": "reg_bit", "bit": 3, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b4", "type": "reg_bit", "bit": 4, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b5", "type": "reg_bit", "bit": 5, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b6", "type": "reg_bit", "bit": 6, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b7", "type": "reg_bit", "bit": 7, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b8", "type": "reg_bit", "bit": 8, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b9", "type": "reg_bit", "bit": 9, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b10", "type": "reg_bit", "bit": 10, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b11", "type": "reg_bit", "bit": 11, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41726_b12", "type": "reg_bit", "bit": 12, "fc": 3, "address": "0xA2FE", "write_mysql": false },
-      { "name": "_st41727_b4", "type": "reg_bit", "bit": 4, "fc": 3, "address": "0xA2FF", "write_mysql": false }
+      { "name": "_st41726_b1", "type": "reg_bit", "bit": 1, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b2", "type": "reg_bit", "bit": 2, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b3", "type": "reg_bit", "bit": 3, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b4", "type": "reg_bit", "bit": 4, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b5", "type": "reg_bit", "bit": 5, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b6", "type": "reg_bit", "bit": 6, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b7", "type": "reg_bit", "bit": 7, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b8", "type": "reg_bit", "bit": 8, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b9", "type": "reg_bit", "bit": 9, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b10", "type": "reg_bit", "bit": 10, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b11", "type": "reg_bit", "bit": 11, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41726_b12", "type": "reg_bit", "bit": 12, "fc": 3, "address": "0xA2FE" },
+      { "name": "_st41727_b4", "type": "reg_bit", "bit": 4, "fc": 3, "address": "0xA2FF" }
     ]
-  },
-  "sink": { "mode": "sequential", "base_addr": 0 }
+  }
 }

@@ -31,6 +31,5 @@
       { "name": "TotalPowerFactor", "type": "i16", "scale": 0.01, "fc": 4, "address": 538 },
       { "name": "EngineOilLevel", "type": "i16", "scale": 0.1, "fc": 4, "address": 615 }
     ]
-  },
-  "sink": { "mode": "sequential", "base_addr": 0 }
+  }
 }

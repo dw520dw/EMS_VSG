@@ -18,9 +18,9 @@
       { "name": "AmbientTemp", "type": "i16", "scale": 0.1, "fc": 4, "address": "0xEAC8", "cluster_stride": 100 },
       { "name": "OutletWaterPressure", "type": "i16", "scale": 0.1, "fc": 4, "address": "0xEAC6", "cluster_stride": 100 },
       { "name": "ReturnWaterPressure", "type": "i16", "scale": 0.1, "fc": 4, "address": "0xEAC7", "cluster_stride": 100 },
-      { "name": "_fan_speed", "type": "u16", "fc": 4, "address": "0xEAD3", "cluster_stride": 100, "write_mysql": false },
-      { "name": "_pump_speed", "type": "u16", "fc": 4, "address": "0xEAC9", "cluster_stride": 100, "write_mysql": false },
-      { "name": "_comp_speed", "type": "u16", "fc": 4, "address": "0xEACA", "cluster_stride": 100, "write_mysql": false },
+      { "name": "_fan_speed", "type": "u16", "fc": 4, "address": "0xEAD3", "cluster_stride": 100 },
+      { "name": "_pump_speed", "type": "u16", "fc": 4, "address": "0xEAC9", "cluster_stride": 100 },
+      { "name": "_comp_speed", "type": "u16", "fc": 4, "address": "0xEACA", "cluster_stride": 100 },
       { "name": "PumpIdleProtection", "type": "bit", "fc": 2, "address": "0x8A6", "cluster_stride": 200 },
       { "name": "WaterSupplyPumpFault", "type": "bit", "fc": 2, "address": "0x8A7", "cluster_stride": 200 },
       { "name": "LiquidTempProbeFault", "type": "bit", "fc": 2, "address": "0x8A8", "cluster_stride": 200 },
@@ -114,6 +114,5 @@
       { "name": "ThermistorOpen", "type": "bit", "fc": 2, "address": "0x900", "cluster_stride": 200 },
       { "name": "AbnormalShutdown", "type": "bit", "fc": 2, "address": "0x901", "cluster_stride": 200 }
     ]
-  },
-  "sink": { "mode": "sequential", "base_addr": 0 }
+  }
 }

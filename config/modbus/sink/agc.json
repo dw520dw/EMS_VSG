@@ -1,0 +1,38 @@
+{
+  "field_maps": {
+    "agc": [
+      { "name": "Online", "addr": 0 },
+      { "name": "ABVoltage", "addr": 1 },
+      { "name": "BCVoltage", "addr": 2 },
+      { "name": "CAVoltage", "addr": 3 },
+      { "name": "APhaseVoltage", "addr": 4 },
+      { "name": "BPhaseVoltage", "addr": 5 },
+      { "name": "CPhaseVoltage", "addr": 6 },
+      { "name": "AFrequency", "addr": 7 },
+      { "name": "BFrequency", "addr": 8 },
+      { "name": "CFrequency", "addr": 9 },
+      { "name": "APhaseCurrent", "addr": 10 },
+      { "name": "BPhaseCurrent", "addr": 11 },
+      { "name": "CPhaseCurrent", "addr": 12 },
+      { "name": "APhaseActivePower", "addr": 13 },
+      { "name": "BPhaseActivePower", "addr": 14 },
+      { "name": "CPhaseActivePower", "addr": 15 },
+      { "name": "TotalActivePower", "addr": 16 },
+      { "name": "APhaseReactivePower", "addr": 17 },
+      { "name": "BPhaseReactivePower", "addr": 18 },
+      { "name": "CPhaseReactivePower", "addr": 19 },
+      { "name": "TotalReactivePower", "addr": 20 },
+      { "name": "APhaseApparentPower", "addr": 21 },
+      { "name": "BPhaseApparentPower", "addr": 22 },
+      { "name": "CPhaseApparentPower", "addr": 23 },
+      { "name": "TotalApparentPower", "addr": 24 },
+      { "name": "TotalActiveEnergy", "addr": 25 },
+      { "name": "TotalReactiveEnergy", "addr": 26 },
+      { "name": "TotalPowerFactor", "addr": 27 },
+      { "name": "EngineOilLevel", "addr": 28 }
+    ]
+  },
+  "tables": [
+    { "mysql_prefix": "agc", "field_map": "agc" }
+  ]
+}

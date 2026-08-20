@@ -1,16 +1,15 @@
 {
   "read": {
     "fields": [
-      { "name": "ChiFa_Switch_DI", "type": "u16", "fc": 3, "address": "0x64", "db_addr": 1 },
-      { "name": "PV_Switch_DI", "type": "u16", "fc": 3, "address": "0x65", "db_addr": 2 },
-      { "name": "Load_Switch_DI", "type": "u16", "fc": 3, "address": "0x66", "db_addr": 3 },
-      { "name": "ChiFa_Singn_DI", "type": "u16", "fc": 3, "address": "0x67", "db_addr": 8 },
-      { "name": "YellowLight", "type": "virtual", "db_addr": 9 },
-      { "name": "GreenLight", "type": "virtual", "db_addr": 10 },
-      { "name": "RedLight", "type": "virtual", "db_addr": 11 },
-      { "name": "ChiFa_Switch_DO", "type": "virtual", "db_addr": 12 },
-      { "name": "QacSplit", "type": "virtual", "db_addr": 13 }
+      { "name": "ChiFa_Switch_DI", "type": "u16", "fc": 3, "address": "0x64" },
+      { "name": "PV_Switch_DI", "type": "u16", "fc": 3, "address": "0x65" },
+      { "name": "Load_Switch_DI", "type": "u16", "fc": 3, "address": "0x66" },
+      { "name": "ChiFa_Singn_DI", "type": "u16", "fc": 3, "address": "0x67" },
+      { "name": "YellowLight", "type": "virtual" },
+      { "name": "GreenLight", "type": "virtual" },
+      { "name": "RedLight", "type": "virtual" },
+      { "name": "ChiFa_Switch_DO", "type": "virtual" },
+      { "name": "QacSplit", "type": "virtual" }
     ]
-  },
-  "sink": { "mode": "explicit" }
+  }
 }

@@ -17,3 +17,7 @@ collect
 *.swp
 .DS_Store
 Thumbs.db
+
+# Python 缓存
+__pycache__/
+*.pyc

@@ -76,20 +76,19 @@
       { "name": "PIDImpedanceAbnormal", "type": "virtual" },
       { "name": "PIDFunctionAbnormal", "type": "virtual" },
       { "name": "PIDVoltageCurrentProtection", "type": "virtual" },
-      { "name": "_InverterState", "type": "u16", "fc": 4, "address": 5037, "write_mysql": false },
-      { "name": "_Alarm5044", "type": "u16", "fc": 4, "address": 5044, "write_mysql": false },
-      { "name": "_PidCode", "type": "u16", "fc": 4, "address": 5150, "write_mysql": false },
-      { "name": "_ActivePowerLimit", "type": "u16", "fc": 3, "address": 5007, "write_mysql": false },
-      { "name": "_pad5024", "type": "u16", "fc": 4, "address": 5024, "write_mysql": false },
-      { "name": "_pad5025", "type": "u16", "fc": 4, "address": 5025, "write_mysql": false },
-      { "name": "_pad5026", "type": "u16", "fc": 4, "address": 5026, "write_mysql": false },
-      { "name": "_pad5027", "type": "u16", "fc": 4, "address": 5027, "write_mysql": false },
-      { "name": "_pad5028", "type": "u16", "fc": 4, "address": 5028, "write_mysql": false },
-      { "name": "_pad5029", "type": "u16", "fc": 4, "address": 5029, "write_mysql": false },
-      { "name": "_pad5124", "type": "u16", "fc": 4, "address": 5124, "write_mysql": false },
-      { "name": "_pad5125", "type": "u16", "fc": 4, "address": 5125, "write_mysql": false },
-      { "name": "_pad5126", "type": "u16", "fc": 4, "address": 5126, "write_mysql": false }
+      { "name": "_InverterState", "type": "u16", "fc": 4, "address": 5037 },
+      { "name": "_Alarm5044", "type": "u16", "fc": 4, "address": 5044 },
+      { "name": "_PidCode", "type": "u16", "fc": 4, "address": 5150 },
+      { "name": "_ActivePowerLimit", "type": "u16", "fc": 3, "address": 5007 },
+      { "name": "_pad5024", "type": "u16", "fc": 4, "address": 5024 },
+      { "name": "_pad5025", "type": "u16", "fc": 4, "address": 5025 },
+      { "name": "_pad5026", "type": "u16", "fc": 4, "address": 5026 },
+      { "name": "_pad5027", "type": "u16", "fc": 4, "address": 5027 },
+      { "name": "_pad5028", "type": "u16", "fc": 4, "address": 5028 },
+      { "name": "_pad5029", "type": "u16", "fc": 4, "address": 5029 },
+      { "name": "_pad5124", "type": "u16", "fc": 4, "address": 5124 },
+      { "name": "_pad5125", "type": "u16", "fc": 4, "address": 5125 },
+      { "name": "_pad5126", "type": "u16", "fc": 4, "address": 5126 }
     ]
-  },
-  "sink": { "mode": "sequential", "base_addr": 0 }
+  }
 }

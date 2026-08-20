@@ -1,10 +1,11 @@
 /**
  * Modbus 统一配置加载器。
- * Telegraf 式 read.fields（fc/address/type/scale）+ sink 写库分离。
+ * Telegraf 式 read.fields（fc/address/type/scale）纯读点表 + 独立 sink 写库映射。
  *
  * 布局（推荐）：
  *   config/modbus/devices.json          — 设备连接与 template 名
- *   config/modbus/templates/<name>.json — 点表
+ *   config/modbus/templates/<name>.json — 纯读点表（read.fields，无写侧字段）
+ *   config/modbus/sink/<name>.json      — 独立写库映射（field_maps {name,addr} + tables 路由）
  *
  * 兼容旧单文件：根上仍可带 "templates": { ... }。
  * 各 JSON 按 path+mtime 缓存，多设备重复加载不反复读盘。
@@ -14,6 +15,7 @@
 #include "json.hpp"
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -107,11 +109,8 @@ int parseAddr(const json& j)
  * - bit            仅 reg_bit：字内位号 0..15
  * - scale / bias   工程值标定：raw * scale * PT^pt_exp * CT^ct_exp + bias
  * - pt_exp / ct_exp 是否乘以电表 PT/CT（0=不乘）
- * - db_addr        仅 sink.mode=explicit 时使用（如 dido 稀疏表）；sequential 下忽略
- * - write_mysql    false 表示只解码给 hook，不参与写库序号（如 PCS 内部状态位）
  *
- * 注意：数组顺序在 sink=sequential 时决定 MySQL addr（第 N 个可写点 → base_addr+N），
- *       与寄存器 address 大小无关。
+ * 写库映射不在模板中：由 config/modbus/sink/<template>.json 的 field_maps 显式 {name,addr} 决定。
  */
 void parseFields(const json& arr, std::vector<ModbusPointDef>& out)
 {
@@ -148,26 +147,9 @@ void parseFields(const json& arr, std::vector<ModbusPointDef>& out)
         point.bias = pt.value("bias", 0.0);
         point.pt_exp = pt.value("pt_exp", 0);
         point.ct_exp = pt.value("ct_exp", 0);
-        point.db_addr = pt.value("db_addr", -1);
-        point.write_mysql = pt.value("write_mysql", true);
 
         out.push_back(std::move(point));
     }
-}
-
-/** sink.mode: sequential=按 fields 可写顺序落库；explicit=每点 db_addr */
-void parseSink(const json& j, ModbusSinkDef& sink)
-{
-    const std::string mode = j.value("mode", std::string("explicit"));
-    if (mode == "sequential" || mode == "seq")
-    {
-        sink.mode = ModbusSinkMode::Sequential;
-    }
-    else
-    {
-        sink.mode = ModbusSinkMode::Explicit;
-    }
-    sink.base_addr = j.value("base_addr", 0);
 }
 
 /** 读取 read.fields；兼容设备根上直接写 fields */
@@ -256,6 +238,88 @@ json resolveTemplate(const fs::path& devicesPath, const json& devicesRoot,
                              " or inline templates." + tplName + ")");
 }
 
+/**
+ * 加载独立写库映射 config/modbus/sink/<template>.json：
+ * 按设备 mysql_table 路由到 field_map，校验后物化为 ModbusWritePoint 列表。
+ */
+void loadSinkWriteMap(const fs::path& devicesPath, const std::string& tplName,
+                      const ModbusDeviceProfile& p, std::vector<ModbusWritePoint>& out)
+{
+    out.clear();
+    if (tplName.empty())
+    {
+        throw std::runtime_error("device " + p.id + ": 无 template，无法解析写库映射 sink");
+    }
+
+    const fs::path sinkPath = devicesPath.parent_path() / "sink" / (tplName + ".json");
+    if (!fs::exists(sinkPath))
+    {
+        throw std::runtime_error("device " + p.id + ": 缺少写库映射 " + sinkPath.string());
+    }
+
+    const json sink = loadJsonCached(sinkPath.string());
+    const json& maps = sink.value("field_maps", json::object());
+    const json& tables = sink.value("tables", json::array());
+
+    // 路由：① mysql 精确命中 → ② mysql_prefix 命中 → ③ 唯一 field_map 兜底(警告)
+    std::string mapName;
+    if (tables.is_array())
+    {
+        for (const auto& t : tables)
+        {
+            if (t.value("mysql", std::string()) == p.mysql_table ||
+                t.value("mysql_prefix", std::string()) == p.mysql_table)
+            {
+                mapName = t.value("field_map", std::string());
+                break;
+            }
+        }
+    }
+    if (mapName.empty() && maps.is_object() && maps.size() == 1)
+    {
+        mapName = maps.begin().key();
+        std::cerr << "device " << p.id << ": sink tables 未命中 mysql_table=" << p.mysql_table
+                  << "，用唯一 field_map 兜底: " << mapName << std::endl;
+    }
+    if (mapName.empty())
+    {
+        throw std::runtime_error("device " + p.id + ": 写库映射 " + sinkPath.string() +
+                                 " 无法路由到 field_map（tables 未匹配 mysql_table=" +
+                                 p.mysql_table + "）");
+    }
+    if (!maps.contains(mapName) || !maps[mapName].is_array())
+    {
+        throw std::runtime_error("device " + p.id + ": 写库映射缺少 field_maps[" + mapName + "]");
+    }
+
+    std::unordered_map<std::string, bool> known;
+    for (const auto& pt : p.points)
+    {
+        known[pt.name] = true;
+    }
+
+    for (const auto& item : maps[mapName])
+    {
+        ModbusWritePoint wp;
+        wp.name = item.value("name", std::string());
+        if (wp.name.empty())
+        {
+            throw std::runtime_error("device " + p.id + ": 写库映射项缺 name");
+        }
+        if (!known.count(wp.name))
+        {
+            throw std::runtime_error("device " + p.id + ": 写点 " + wp.name +
+                                     " 不在模板 read.fields 中");
+        }
+        wp.addr = item.value("addr", -1);
+        if (wp.addr < 0)
+        {
+            throw std::runtime_error("device " + p.id + ": 写点 " + wp.name + " addr 非法");
+        }
+        out.push_back(std::move(wp));
+    }
+}
+
 ModbusDeviceProfile parseDeviceObject(const json& dev, const fs::path& devicesPath,
                                       const json& devicesRoot)
 {
@@ -313,25 +377,18 @@ ModbusDeviceProfile parseDeviceObject(const json& dev, const fs::path& devicesPa
         p.pt_ct_sync.max_value = s.value("max_value", 30000);
     }
 
+    std::string tplName;
     if (dev.contains("template"))
     {
-        const std::string tplName = dev.at("template").get<std::string>();
+        tplName = dev.at("template").get<std::string>();
         const json tpl = resolveTemplate(devicesPath, devicesRoot, tplName);
         parseReadSection(tpl, p.points);
-        if (tpl.contains("sink"))
-        {
-            parseSink(tpl["sink"], p.sink);
-        }
     }
 
-    // 设备级 read/fields 可覆盖 template
+    // 设备级 read/fields 可覆盖 template（写库映射仍按 template 解析）
     if (dev.contains("read") || dev.contains("fields"))
     {
         parseReadSection(dev, p.points);
-    }
-    if (dev.contains("sink"))
-    {
-        parseSink(dev["sink"], p.sink);
     }
 
     if (p.points.empty())
@@ -345,24 +402,7 @@ ModbusDeviceProfile parseDeviceObject(const json& dev, const fs::path& devicesPa
 
     validateTransport(p);
 
-    if (p.sink.mode == ModbusSinkMode::Explicit)
-    {
-        bool any = false;
-        for (const auto& pt : p.points)
-        {
-            if (pt.write_mysql && pt.db_addr >= 0)
-            {
-                any = true;
-                break;
-            }
-        }
-        if (!any)
-        {
-            throw std::runtime_error(
-                "device " + p.id +
-                ": sink=explicit 但 fields 无有效 db_addr（或改用 sink.mode=sequential）");
-        }
-    }
+    loadSinkWriteMap(devicesPath, tplName, p, p.write_points);
     return p;
 }
 
