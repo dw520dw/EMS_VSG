@@ -21,7 +21,7 @@
 
 class Logger {
 public:
-    static Logger& getInstance(const std::string &logFilePath = R"(/userdata/iEMS-MG1000/collectLog/collect.log)", size_t maxLogSize = 1024 * 10000, size_t maxLogs = 3) {
+    static Logger& getInstance(const std::string &logFilePath = R"(/userdata/iEMS-MG1000/collectLog/collect.log)", size_t maxLogSize = 1024 * 1000, size_t maxLogs = 10) {
         static Logger instance(logFilePath, maxLogSize, maxLogs);
         return instance;
     }
