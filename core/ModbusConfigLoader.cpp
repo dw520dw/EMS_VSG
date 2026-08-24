@@ -26,6 +26,7 @@ namespace fs = std::filesystem;
 
 namespace {
 
+/** 解析 fc：整数 1/2/3/4 或字符串 "coils"/"discrete"/"holding"/"input" → ModbusFc 枚举；非法抛异常。 */
 ModbusFc parseFc(const json& j)
 {
     if (j.is_number_integer())
@@ -60,6 +61,7 @@ ModbusFc parseFc(const json& j)
     throw std::runtime_error("invalid Modbus fc in config");
 }
 
+/** 解析点类型字符串 → ModbusPointType 枚举（u16/i16/u32_hi_lo/…/virtual）；非法抛异常。 */
 ModbusPointType parsePointType(const std::string& s)
 {
     if (s == "u16")
@@ -163,6 +165,7 @@ void parseReadSection(const json& node, std::vector<ModbusPointDef>& points)
     parseFields(src["fields"], points);
 }
 
+/** 校验 transport 只允许 rtu|tcp；tcp_ip/rtu_device 等连接参数由业务侧建总线时校验。 */
 void validateTransport(const ModbusDeviceProfile& p)
 {
     if (p.transport != "tcp" && p.transport != "rtu")
@@ -179,6 +182,7 @@ struct JsonFileCache {
     std::unordered_map<std::string, std::pair<fs::file_time_type, json>> files;
 };
 
+/** 返回按 path+mtime 的 JSON 全局缓存单例（带锁）。 */
 JsonFileCache& jsonCache()
 {
     static JsonFileCache cache;
@@ -320,6 +324,11 @@ void loadSinkWriteMap(const fs::path& devicesPath, const std::string& tplName,
     }
 }
 
+/**
+ * 解析 devices.json 中单个 device 对象 → ModbusDeviceProfile：
+ * 连接参数 + comm/enable/pt_ct_sync + 模板读点（points）+ 设备级 read/fields 覆盖
+ * + 独立 sink 写库映射（loadSinkWriteMap → write_points）。
+ */
 ModbusDeviceProfile parseDeviceObject(const json& dev, const fs::path& devicesPath,
                                       const json& devicesRoot)
 {
@@ -408,6 +417,7 @@ ModbusDeviceProfile parseDeviceObject(const json& dev, const fs::path& devicesPa
 
 }  // namespace
 
+/** 对外入口：读 devices.json，按 deviceId 定位并解析成 ModbusDeviceProfile（含写库映射）。 */
 ModbusDeviceProfile loadModbusDeviceProfile(const std::string& jsonPath,
                                             const std::string& deviceId)
 {

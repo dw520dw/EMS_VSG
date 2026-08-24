@@ -65,6 +65,14 @@ void ModbusRTU::release()
 
 bool ModbusRTU::openPort()
 {
+    // 设备文件不存在（USB 转串口松脱/未上电、/usr/dev/serial 链接失效）时绝不进 libmodbus：
+    // 定制版 libmodbus 在 RTU connect 内部启用 RS485（modbus_rtu_set_serial_mode），
+    // 对失效串口可能触发 assert → SIGABRT 把整个进程带崩。
+    if (::access(device_.c_str(), F_OK) != 0)
+    {
+        std::cerr << "ModbusRTU 串口设备不存在: " << device_ << std::endl;
+        return false;
+    }
     // 8 数据位、无校验、1 停止位
     ctx = modbus_new_rtu(device_.c_str(), baudrate_, 'N', 8, 1);
     if (ctx == nullptr)
@@ -92,11 +100,32 @@ bool ModbusRTU::ensureConnected()
 {
     if (ctx && modbus_get_socket(ctx) != -1)
     {
+        reconnectDelayMs_ = 0;  // 连接健康，清零退避
         return true;
     }
+
+    // 退避窗口内快速失败：串口失效时不要每轮(600ms)都反复 modbus_connect，
+    // 既耗 CPU/总线，也放大定制 libmodbus 在 connect 内部断言崩溃的窗口。
+    const auto now = std::chrono::steady_clock::now();
+    if (reconnectDelayMs_ > 0 && now < nextReconnectAt_)
+    {
+        return false;
+    }
+
     // 串口未打开或已失效（USB 转串口重枚举等）：重新打开
     release();
-    return openPort();
+    if (openPort())
+    {
+        reconnectDelayMs_ = 0;
+        return true;
+    }
+
+    // 指数退避：1s -> 2s -> 4s -> ... -> 30s 封顶
+    reconnectDelayMs_ =
+        (reconnectDelayMs_ == 0) ? kReconnectInitMs
+                                 : std::min(reconnectDelayMs_ * 2, kReconnectMaxMs);
+    nextReconnectAt_ = now + std::chrono::milliseconds(reconnectDelayMs_);
+    return false;
 }
 
 bool ModbusRTU::setSlave(int slave_id)

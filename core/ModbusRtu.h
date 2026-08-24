@@ -54,6 +54,11 @@ private:
     modbus_t* ctx;
     /** 串行化全部公共 IO，防止多线程并发读写同一个 modbus ctx / 同一串口 */
     mutable std::mutex io_mutex_;
+
+    /** 重连退避：0=可立即重连；失败后 1s→2s→4s→…→30s 封顶（对齐 ModbusTCP）。
+     *  串口失效时不每轮反复 modbus_connect，避免触发定制 libmodbus 的 RS485 断言崩溃。 */
+    int reconnectDelayMs_ = 0;
+    std::chrono::steady_clock::time_point nextReconnectAt_{};
 };
 
 /**

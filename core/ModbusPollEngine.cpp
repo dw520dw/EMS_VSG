@@ -22,6 +22,7 @@ uint32_t cacheKey(ModbusFc fc, int addr)
 
 }  // namespace
 
+/** 返回点类型占用的寄存器字数：32 位类型占 2 字，其余占 1 字。 */
 int ModbusPollEngine::registerSpan(ModbusPointType type)
 {
     switch (type)
@@ -36,6 +37,10 @@ int ModbusPollEngine::registerSpan(ModbusPointType type)
     }
 }
 
+/**
+ * 构造引擎：保存总线引用与设备配置（读点 points + 写点 write_points），
+ * 记录每个读点的第 1 簇基址，并重建读计划。
+ */
 ModbusPollEngine::ModbusPollEngine(IModbusBus& bus, ModbusDeviceProfile profile)
     : bus_(bus),
       profile_(std::move(profile)),
@@ -50,6 +55,11 @@ ModbusPollEngine::ModbusPollEngine(IModbusBus& bus, ModbusDeviceProfile profile)
     rebuildReadPlan();
 }
 
+/**
+ * 多簇切换：把每个真实寄存器点的地址偏移到当前簇
+ * （address = 第1簇基址 + (clusterIndex-1)*cluster_stride），virtual 点跳过，然后重建读计划。
+ * 写库映射 write_points 与簇无关，各簇共用。
+ */
 void ModbusPollEngine::setClusterIndex(int clusterIndex)
 {
     const int idx = clusterIndex < 1 ? 1 : clusterIndex;
@@ -66,6 +76,10 @@ void ModbusPollEngine::setClusterIndex(int clusterIndex)
     rebuildReadPlan();
 }
 
+/**
+ * 重建读计划：把读点表按 fc 分组、地址连续合并，生成最少的批量读请求（readPlan_），
+ * 并预留 regCache_/bitCache_ 容量减少轮询时的 rehash。virtual/virtual_comm 点不占读请求。
+ */
 void ModbusPollEngine::rebuildReadPlan()
 {
     struct Span {
@@ -157,12 +171,14 @@ void ModbusPollEngine::rebuildReadPlan()
     bitCache_.reserve(bitSlots);
 }
 
+/** 按点 name 取解码后的值（hook 用），不存在则返回默认值 def。 */
 double ModbusPollEngine::getValue(const std::string& name, double def) const
 {
     const auto it = values_.find(name);
     return it != values_.end() ? it->second : def;
 }
 
+/** 帧间间隔：inter_frame_ms > 0 时 sleep 该时长，降低总线压力（多从站/串口尤为重要）。 */
 void ModbusPollEngine::frameGap() const
 {
     if (profile_.inter_frame_ms > 0)
@@ -171,6 +187,7 @@ void ModbusPollEngine::frameGap() const
     }
 }
 
+/** 使能检查：未配置 enable 或 qt 地址非法则恒返回 true；否则读 qt 表指定地址与使能值比对。 */
 bool ModbusPollEngine::checkEnabled(IDataSink& sink)
 {
     if (!profile_.enable.use_qt || profile_.enable.qt_addr < 0)
@@ -180,6 +197,11 @@ bool ModbusPollEngine::checkEnabled(IDataSink& sink)
     return sink.readInt(profile_.enable.qt_addr, "qt") == profile_.enable.enabled_value;
 }
 
+/**
+ * 通讯探测与在线/离线处理：probe 探针读寄存器，连续失败超 fail_threshold 置离线
+ * （写 Online=1 + com_alarm），离线时本轮返回 false 跳过采集；在线时清 com_alarm。
+ * 通讯在线标志 commFlag_ 供 virtual_comm 点落库。
+ */
 bool ModbusPollEngine::checkComm(IDataSink& sink)
 {
     const std::string table = profile_.resolvedMysqlTable();
@@ -240,6 +262,10 @@ bool ModbusPollEngine::checkComm(IDataSink& sink)
     return true;
 }
 
+/**
+ * PT/CT 倍率同步：enabled 时读设备 PT/CT 寄存器与 qt 目标值，
+ * 差异在 min/max 合理范围且配置了写寄存器时下发同步，并更新 pt_/ct_ 供解码标定使用。
+ */
 void ModbusPollEngine::syncPtCt(IDataSink& sink)
 {
     if (!profile_.pt_ct_sync.enabled)
@@ -305,6 +331,10 @@ void ModbusPollEngine::syncPtCt(IDataSink& sink)
     }
 }
 
+/**
+ * 按读计划执行批量读：成功的请求写缓存（regCache_/bitCache_），失败的保留上轮值（sticky）。
+ * 返回是否有任何请求成功；全部失败时由调用方决定（writeRealtime 仍会写库保持 Online 语义）。
+ */
 bool ModbusPollEngine::readAllFields()
 {
     // 不整表 clear：某段读失败时保留上轮成功值，避免把库写成 0
@@ -365,6 +395,7 @@ bool ModbusPollEngine::readAllFields()
     return anyOk;
 }
 
+/** 从寄存器缓存按 (fc, address) 取值；命中返回 true。 */
 bool ModbusPollEngine::lookupReg(ModbusFc fc, int addr, uint16_t& out) const
 {
     const auto it = regCache_.find(cacheKey(fc, addr));
@@ -376,6 +407,7 @@ bool ModbusPollEngine::lookupReg(ModbusFc fc, int addr, uint16_t& out) const
     return true;
 }
 
+/** 从位缓存按 (fc, address) 取值（离散量/线圈）；命中返回 true。 */
 bool ModbusPollEngine::lookupBit(ModbusFc fc, int addr, uint8_t& out) const
 {
     const auto it = bitCache_.find(cacheKey(fc, addr));
@@ -387,6 +419,10 @@ bool ModbusPollEngine::lookupBit(ModbusFc fc, int addr, uint8_t& out) const
     return true;
 }
 
+/**
+ * 单点原始解码：VirtualComm/Virtual 直接返回；Bit 查位缓存；
+ * U16/I16/U32/I32 按字序组合（HI_LO=address 高字，LO_HI=address 低字）；RegBit 取字内位。
+ */
 double ModbusPollEngine::decodeRaw(const ModbusPointDef& pt) const
 {
     if (pt.type == ModbusPointType::VirtualComm)
@@ -471,6 +507,10 @@ double ModbusPollEngine::decodeRaw(const ModbusPointDef& pt) const
     }
 }
 
+/**
+ * 把全部读点解码成工程值存入 values_（按 name 索引，供 hook/writeRealtime 取用）：
+ * virtual 点保留 hook 上轮 setValue 的值，其余 = raw × scale × PT^pt_exp × CT^ct_exp + bias。
+ */
 void ModbusPollEngine::decodePoints()
 {
     std::unordered_map<std::string, double> keptVirtual;
@@ -502,6 +542,10 @@ void ModbusPollEngine::decodePoints()
     }
 }
 
+/**
+ * 按写库映射 write_points 批量落库：从 values_ 按 name 取值 → (addr, value) 列表
+ * → 一次 updateRealtime 批量 UPDATE 到 resolvedMysqlTable()。地址完全由配置显式决定。
+ */
 void ModbusPollEngine::writeRealtime(IDataSink& sink)
 {
     // 写库映射来自 config/modbus/sink/<template>.json 物化的 write_points（显式 {name,addr}）
@@ -518,6 +562,10 @@ void ModbusPollEngine::writeRealtime(IDataSink& sink)
     sink.updateRealtime(profile_.resolvedMysqlTable(), points);
 }
 
+/**
+ * 单轮采集流水线：使能检查 → 通讯探测 → PT/CT 同步 → 读寄存器 → 解码 → hook → 写库。
+ * 即使本轮读失败仍写库（sticky cache + virtual_comm 保持 Online 语义），返回读是否成功。
+ */
 bool ModbusPollEngine::pollOnce(IDataSink& sink)
 {
     if (!checkEnabled(sink))
@@ -542,6 +590,7 @@ bool ModbusPollEngine::pollOnce(IDataSink& sink)
     return readOk;
 }
 
+/** 主循环（等间隔轮询）：每 poll_ms 跑一轮 pollOnce，异常捕获防线程死亡；随 ThreadManager 停止。 */
 void ModbusPollEngine::runLoop(SinkFactory factory)
 {
     auto& mgr = ThreadManager::instance();
@@ -565,6 +614,7 @@ void ModbusPollEngine::runLoop(SinkFactory factory)
     std::cout << "[" << profile_.id << "] 线程退出" << std::endl;
 }
 
+/** 主循环（固定周期）：按每轮开始时刻计算剩余 sleep，避免轮询耗时导致周期漂移。 */
 void ModbusPollEngine::runLoopFixedPeriod(SinkFactory factory)
 {
     auto& mgr = ThreadManager::instance();
