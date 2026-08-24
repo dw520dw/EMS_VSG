@@ -59,6 +59,12 @@ private:
      *  串口失效时不每轮反复 modbus_connect，避免触发定制 libmodbus 的 RS485 断言崩溃。 */
     int reconnectDelayMs_ = 0;
     std::chrono::steady_clock::time_point nextReconnectAt_{};
+
+    /** 硬错误滞后：连续达到 kHardErrorThreshold 次硬错误才真正 release+重连，
+     *  单次瞬态错误（线路噪声/偶发 CRC）不触发，避免反复 modbus_connect 撞 libmodbus 断言。 */
+    int hardErrorCount_ = 0;
+    void noteHardError();   // 硬错误计数；达阈值才释放
+    void noteIoSuccess();   // 一次成功 IO 清零计数
 };
 
 /**

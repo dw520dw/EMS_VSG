@@ -5,6 +5,7 @@
  */
 
 #include "ModbusRtu.h"
+#include "logger.h"
 #include <algorithm>
 #include <cerrno>
 #include <poll.h>
@@ -22,6 +23,8 @@ constexpr int kReconnectInitMs = 1000;
 constexpr int kReconnectMaxMs = 30000;
 /** 非阻塞 connect 超时（毫秒）：对不可达 IP 不再卡 OS 默认超时 */
 constexpr int kConnectTimeoutMs = 2000;
+/** 硬错误滞后阈值：连续达到该次数才 release+重连，单次瞬态错误不触发 */
+constexpr int kHardErrorThreshold = 3;
 
 /**
  * 软错误：连接本身仍健康，不应触发断链重连。
@@ -63,6 +66,22 @@ void ModbusRTU::release()
     }
 }
 
+void ModbusRTU::noteIoSuccess()
+{
+    hardErrorCount_ = 0;
+}
+
+void ModbusRTU::noteHardError()
+{
+    ++hardErrorCount_;
+    if (hardErrorCount_ >= kHardErrorThreshold)
+    {
+        LOG_ACTION("串口连续硬错误 " << hardErrorCount_ << " 次，释放 ctx 准备重连");
+        hardErrorCount_ = 0;
+        release();
+    }
+}
+
 bool ModbusRTU::openPort()
 {
     // 设备文件不存在（USB 转串口松脱/未上电、/usr/dev/serial 链接失效）时绝不进 libmodbus：
@@ -70,14 +89,14 @@ bool ModbusRTU::openPort()
     // 对失效串口可能触发 assert → SIGABRT 把整个进程带崩。
     if (::access(device_.c_str(), F_OK) != 0)
     {
-        std::cerr << "ModbusRTU 串口设备不存在: " << device_ << std::endl;
+        LOG_ACTION("ModbusRTU 串口设备不存在: " << device_);
         return false;
     }
     // 8 数据位、无校验、1 停止位
     ctx = modbus_new_rtu(device_.c_str(), baudrate_, 'N', 8, 1);
     if (ctx == nullptr)
     {
-        std::cerr << "ModbusRTU 创建上下文失败: " << device_ << std::endl;
+        LOG_ACTION("ModbusRTU 创建上下文失败: " << device_);
         return false;
     }
     // 串口丢帧/协议错乱时自动清状态并重开端口
@@ -87,8 +106,8 @@ bool ModbusRTU::openPort()
 
     if (modbus_connect(ctx) != 0)
     {
-        std::cerr << "ModbusRTU 打开串口失败: " << device_ << " ("
-                  << modbus_strerror(errno) << ")" << std::endl;
+        LOG_ACTION("ModbusRTU 打开串口失败: " << device_ << " ("
+                   << modbus_strerror(errno) << ")");
         modbus_free(ctx);
         ctx = nullptr;
         return false;
@@ -117,6 +136,7 @@ bool ModbusRTU::ensureConnected()
     if (openPort())
     {
         reconnectDelayMs_ = 0;
+        hardErrorCount_ = 0;  // 重连成功，清零硬错误计数
         return true;
     }
 
@@ -162,11 +182,15 @@ int ModbusRTU::readRegisters(int addr, int num_reg, uint16_t* dest)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "Read error: " << modbus_strerror(e) << " addr: " << addr << std::endl;
+        LOG_ACTION("Read error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
-            release();  // 硬错误（串口失效等）：释放 ctx，下轮 ensureConnected 重开
+            noteHardError();  // 连续硬错误达阈值才释放重连
         }
+    }
+    else
+    {
+        noteIoSuccess();
     }
     return rc;
 }
@@ -182,12 +206,15 @@ int ModbusRTU::writeRegister(int addr, uint16_t value, const std::string& tableN
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << tableName << " Write error: " << modbus_strerror(e) << " addr: " << addr
-                  << std::endl;
+        LOG_ACTION(tableName << " Write error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
-            release();
+            noteHardError();
         }
+    }
+    else
+    {
+        noteIoSuccess();
     }
     return rc;
 }
@@ -203,12 +230,15 @@ int ModbusRTU::writeCoil(int addr, bool value, const std::string& tableName)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << tableName << " Coil write error: " << modbus_strerror(e) << " addr: " << addr
-                  << std::endl;
+        LOG_ACTION(tableName << " Coil write error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
-            release();
+            noteHardError();
         }
+    }
+    else
+    {
+        noteIoSuccess();
     }
     return rc;
 }
@@ -224,12 +254,16 @@ int ModbusRTU::writeRegisters(int addr, const uint16_t* values, int count, const
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << tableName << " WriteRegisters error: " << modbus_strerror(e) << " addr: " << addr
-                  << " count: " << count << std::endl;
+        LOG_ACTION(tableName << " WriteRegisters error: " << modbus_strerror(e) << " addr: " << addr
+                             << " count: " << count);
         if (!isSoftError(e))
         {
-            release();
+            noteHardError();
         }
+    }
+    else
+    {
+        noteIoSuccess();
     }
     return rc;
 }
@@ -245,12 +279,16 @@ int ModbusRTU::writeBits(int addr, const uint8_t* values, int count, const std::
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << tableName << " WriteBits error: " << modbus_strerror(e) << " addr: " << addr
-                  << " count: " << count << std::endl;
+        LOG_ACTION(tableName << " WriteBits error: " << modbus_strerror(e) << " addr: " << addr
+                             << " count: " << count);
         if (!isSoftError(e))
         {
-            release();
+            noteHardError();
         }
+    }
+    else
+    {
+        noteIoSuccess();
     }
     return rc;
 }
@@ -266,11 +304,15 @@ int ModbusRTU::readInputRegisters(int addr, int num_reg, uint16_t* dest)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "Read error: " << modbus_strerror(e) << " addr: " << addr << std::endl;
+        LOG_ACTION("Read error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
-            release();
+            noteHardError();
         }
+    }
+    else
+    {
+        noteIoSuccess();
     }
     return rc;
 }
@@ -286,11 +328,15 @@ int ModbusRTU::readBits(int addr, int num_reg, uint8_t* dest)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "Read error: " << modbus_strerror(e) << " addr: " << addr << std::endl;
+        LOG_ACTION("Read error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
-            release();
+            noteHardError();
         }
+    }
+    else
+    {
+        noteIoSuccess();
     }
     return rc;
 }
@@ -306,11 +352,15 @@ int ModbusRTU::readInputBits(int addr, int num_reg, uint8_t* dest)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "Read error: " << modbus_strerror(e) << " addr: " << addr << std::endl;
+        LOG_ACTION("Read error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
-            release();
+            noteHardError();
         }
+    }
+    else
+    {
+        noteIoSuccess();
     }
     return rc;
 }
@@ -327,13 +377,14 @@ bool ModbusRTU::probe(int addr, int num_reg, uint16_t* dest, const std::string& 
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "probe fail: " << tag << " (" << modbus_strerror(e) << ")" << std::endl;
+        LOG_ACTION("probe fail: " << tag << " (" << modbus_strerror(e) << ")");
         if (!isSoftError(e))
         {
-            release();
+            noteHardError();
         }
         return false;
     }
+    noteIoSuccess();
     return true;
 }
 
@@ -419,8 +470,8 @@ bool ModbusTCP::probe(int addr, int num_reg, uint16_t* dest, const std::string& 
         return true;
     }
     const int e = errno;
-    std::cerr << "probe fail: " << tag << " errno=" << e << " (" << modbus_strerror(e) << ")"
-              << (isSoftError(e) ? "，软错误保留连接" : "，将重连") << std::endl;
+    LOG_ACTION("probe fail: " << tag << " errno=" << e << " (" << modbus_strerror(e) << ")"
+                              << (isSoftError(e) ? "，软错误保留连接" : "，将重连"));
     if (!isSoftError(e))
     {
         disconnectUnlocked();
@@ -441,8 +492,7 @@ bool ModbusTCP::try_connect()
     const int fd = connectWithTimeout(ip_, port_, kConnectTimeoutMs);
     if (fd < 0)
     {
-        std::cerr << "连接失败: " << ip_ << ":" << port_ << " (" << modbus_strerror(errno) << ")"
-                  << std::endl;
+        LOG_ACTION("连接失败: " << ip_ << ":" << port_ << " (" << modbus_strerror(errno) << ")");
         modbus_free(ctx_);
         ctx_ = nullptr;
         return false;
@@ -589,7 +639,7 @@ int ModbusTCP::readRegisters(int addr, int num_reg, uint16_t* dest)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "Read error: " << modbus_strerror(e) << " addr: " << addr << std::endl;
+        LOG_ACTION("Read error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
             disconnectUnlocked();  // 硬错误：断链，下轮 ensureConnected 重连
@@ -609,8 +659,7 @@ int ModbusTCP::writeRegister(int addr, uint16_t value, const std::string& tableN
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << tableName << " Write error: " << modbus_strerror(e) << " addr: " << addr
-                  << std::endl;
+        LOG_ACTION(tableName << " Write error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
             disconnectUnlocked();
@@ -630,8 +679,7 @@ int ModbusTCP::writeCoil(int addr, bool value, const std::string& tableName)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << tableName << " Coil write error: " << modbus_strerror(e) << " addr: " << addr
-                  << std::endl;
+        LOG_ACTION(tableName << " Coil write error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
             disconnectUnlocked();
@@ -651,8 +699,8 @@ int ModbusTCP::writeRegisters(int addr, const uint16_t* values, int count, const
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << tableName << " WriteRegisters error: " << modbus_strerror(e) << " addr: " << addr
-                  << " count: " << count << std::endl;
+        LOG_ACTION(tableName << " WriteRegisters error: " << modbus_strerror(e) << " addr: " << addr
+                             << " count: " << count);
         if (!isSoftError(e))
         {
             disconnectUnlocked();
@@ -672,8 +720,8 @@ int ModbusTCP::writeBits(int addr, const uint8_t* values, int count, const std::
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << tableName << " WriteBits error: " << modbus_strerror(e) << " addr: " << addr
-                  << " count: " << count << std::endl;
+        LOG_ACTION(tableName << " WriteBits error: " << modbus_strerror(e) << " addr: " << addr
+                             << " count: " << count);
         if (!isSoftError(e))
         {
             disconnectUnlocked();
@@ -693,7 +741,7 @@ int ModbusTCP::readInputRegisters(int addr, int num_reg, uint16_t* dest)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "Read error: " << modbus_strerror(e) << " addr: " << addr << std::endl;
+        LOG_ACTION("Read error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
             disconnectUnlocked();
@@ -713,7 +761,7 @@ int ModbusTCP::readBits(int addr, int num_reg, uint8_t* dest)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "Read error: " << modbus_strerror(e) << " addr: " << addr << std::endl;
+        LOG_ACTION("Read error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
             disconnectUnlocked();
@@ -733,7 +781,7 @@ int ModbusTCP::readInputBits(int addr, int num_reg, uint8_t* dest)
     if (rc == -1)
     {
         const int e = errno;
-        std::cerr << "Read error: " << modbus_strerror(e) << " addr: " << addr << std::endl;
+        LOG_ACTION("Read error: " << modbus_strerror(e) << " addr: " << addr);
         if (!isSoftError(e))
         {
             disconnectUnlocked();
