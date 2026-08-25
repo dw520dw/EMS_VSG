@@ -99,9 +99,8 @@ bool ModbusRTU::openPort()
         LOG_ACTION("ModbusRTU 创建上下文失败: " << device_);
         return false;
     }
-    // 串口丢帧/协议错乱时自动清状态并重开端口
-    modbus_set_error_recovery(ctx, static_cast<modbus_error_recovery_mode>(
-                                       MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL));
+    // 不启用 libmodbus 内部错误恢复：连接生命周期完全由本类 release/ensureConnected 掌控，
+    // 避免"库内部自动恢复"与"外部释放"双重管理同一 ctx（定制版 libmodbus 的 RS485 恢复路径曾触发断言）
     modbus_set_response_timeout(ctx, timeout_ms_ / 1000, (timeout_ms_ % 1000) * 1000);
 
     if (modbus_connect(ctx) != 0)
@@ -624,6 +623,7 @@ void ModbusTCP::disconnectUnlocked()
 {
     if (ctx_)
     {
+        modbus_flush(ctx_);  // 关闭前清残留接收缓冲，避免残余数据干扰下次连接
         modbus_close(ctx_);
     }
 }
