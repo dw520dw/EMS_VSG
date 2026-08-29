@@ -1,12 +1,10 @@
 {
   "read": {
     "fields": [
-      { "name": "Online", "type": "virtual_comm" },
       { "name": "SOC", "type": "u16", "fc": 4, "address": 4 },
       { "name": "SOH", "type": "u16", "fc": 4, "address": 5 },
       { "name": "TotalVoltage", "type": "u16", "scale": 0.1, "fc": 4, "address": 2 },
       { "name": "TotalCurrent", "type": "u16", "scale": 0.1, "bias": -1600, "fc": 4, "address": 3 },
-      { "name": "ActivePower", "type": "virtual" },
       { "name": "MaxVoltage", "type": "u16", "scale": 0.001, "fc": 4, "address": 6 },
       { "name": "MaxVoltageCluster", "type": "u16", "fc": 4, "address": 7 },
       { "name": "MaxVoltageID", "type": "u16", "fc": 4, "address": 8 },
@@ -32,7 +30,6 @@
       { "name": "Temp", "type": "u16", "bias": -40, "fc": 4, "address": "0x2A" },
       { "name": "Status", "type": "u16", "fc": 4, "address": "0x2B" },
       { "name": "InsulationResistance", "type": "u16", "fc": 4, "address": "0x2D" },
-      { "name": "AlarmLevel", "type": "virtual" },
       { "name": "GroupUnderVolAlarm1", "type": "bit", "fc": 2, "address": 1 },
       { "name": "GroupUnderVolAlarm2", "type": "bit", "fc": 2, "address": 2 },
       { "name": "GroupUnderVolAlarm3", "type": "bit", "fc": 2, "address": 3 },

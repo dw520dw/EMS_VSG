@@ -1,7 +1,6 @@
 {
   "read": {
     "fields": [
-      { "name": "Online", "type": "virtual_comm" },
       { "name": "ABVoltage", "type": "u16", "fc": 4, "address": 501 },
       { "name": "BCVoltage", "type": "u16", "fc": 4, "address": 502 },
       { "name": "CAVoltage", "type": "u16", "fc": 4, "address": 503 },

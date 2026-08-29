@@ -35,10 +35,10 @@ inline void apply41696ControlBits(SmartenSetData& dst, uint16_t word)
 }
 
 // 将三个布尔控制标志打包为寄存器 41696 的 16 位控制字
-// bit0 固定为 1（保留位）
+// bit0 固定为 0（保留位）
 inline uint16_t pack41696ControlWord(bool antiBackflow, bool powerFactor, bool unbalanced)
 {
-    uint16_t v = 0x0001;
+    uint16_t v = 0x0000;
     if (antiBackflow) {
         v |= (1U << 1);
     }

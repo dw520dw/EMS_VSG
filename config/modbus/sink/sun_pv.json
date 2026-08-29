@@ -1,7 +1,6 @@
 {
   "field_maps": {
     "sun_pv": [
-      { "name": "Online", "addr": 0 },
       { "name": "MPPTStatus", "addr": 1 },
       { "name": "DailyGeneration", "addr": 2 },
       { "name": "MonthlyGeneration", "addr": 3 },

@@ -1,7 +1,6 @@
 {
   "field_maps": {
     "pcs_smarten": [
-      { "name": "Online", "addr": 0 },
       { "name": "Status", "addr": 1 },
       { "name": "OnGrid", "addr": 2 },
       { "name": "APhaseVoltage", "addr": 3 },

@@ -1,7 +1,6 @@
 {
   "field_maps": {
     "amc_meter": [
-      { "name": "Online", "addr": 0 },
       { "name": "APhaseVoltage", "addr": 1 },
       { "name": "BPhaseVoltage", "addr": 2 },
       { "name": "CPhaseVoltage", "addr": 3 },

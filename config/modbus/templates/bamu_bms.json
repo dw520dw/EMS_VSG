@@ -1,10 +1,8 @@
 {
   "read": {
     "fields": [
-      { "name": "Online", "type": "virtual_comm" },
       { "name": "TotalVoltage", "type": "u16", "scale": 0.1, "fc": 4, "address": "0x73", "cluster_stride": 3000 },
       { "name": "TotalCurrent", "type": "i16", "scale": 0.1, "bias": -1600, "fc": 4, "address": "0x74", "cluster_stride": 3000 },
-      { "name": "Power", "type": "virtual" },
       { "name": "SOC", "type": "u16", "fc": 4, "address": "0x76", "cluster_stride": 3000 },
       { "name": "SOH", "type": "u16", "fc": 4, "address": "0x77", "cluster_stride": 3000 },
       { "name": "AvgVoltage", "type": "u16", "scale": 0.001, "fc": 4, "address": "0x79", "cluster_stride": 3000 },

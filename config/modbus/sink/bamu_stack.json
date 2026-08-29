@@ -1,7 +1,6 @@
 {
   "field_maps": {
     "bamu_stack": [
-      { "name": "Online", "addr": 0 },
       { "name": "SOC", "addr": 1 },
       { "name": "SOH", "addr": 2 },
       { "name": "TotalVoltage", "addr": 3 },

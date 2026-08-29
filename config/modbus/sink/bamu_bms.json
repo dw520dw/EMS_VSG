@@ -1,7 +1,6 @@
 {
   "field_maps": {
     "bamu_bms": [
-      { "name": "Online", "addr": 0 },
       { "name": "TotalVoltage", "addr": 1 },
       { "name": "TotalCurrent", "addr": 2 },
       { "name": "Power", "addr": 3 },

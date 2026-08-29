@@ -17,14 +17,13 @@ enum class ModbusPointType {
     U32_LO_HI,   // 32 位无符号：address=低字，address+1=高字（扩展用）
     I32_LO_HI,   // 32 位有符号，同上字序
     Bit,         // 离散量/线圈：address 为位地址
-    RegBit,      // 寄存器 address 内某一 bit（bit 为 0..15）
-    VirtualComm, // 引擎注入的通讯在线标志（0/1），不读寄存器
-    Virtual      // 由 post-decode hook 填充（功率累计、告警等级等）
+    RegBit       // 寄存器 address 内某一 bit（bit 为 0..15）
 };
 
 /**
  * 读层测点（Telegraf 风格）：fc + address + type + scale/bias。
  * 公式：value = raw * scale * (pt ^ pt_exp) * (ct ^ ct_exp) + bias
+ * pt_exp/ct_exp 由模板根 pt_ct 名单填入（fields 里不必写）。
  * 写库由 profile.write_points（config/modbus/sink/<template>.json）决定，与读层解耦。
  */
 struct ModbusPointDef {
@@ -42,8 +41,8 @@ struct ModbusPointDef {
 
 /** 写库映射点：来源 config/modbus/sink/<template>.json（field_maps 的 {name, addr}） */
 struct ModbusWritePoint {
-    std::string name;  // 对应 read.fields[].name（或 hook setValue 填充的 virtual 点）
-    int addr = -1;     // MySQL 表内地址（显式，不再由读侧顺序推导）
+    std::string name;  // 对应 read.fields[].name，或 hook setValue 的派生点
+    int addr = -1;     // MySQL 表内地址（显式）；通讯在线不在此列，见 comm.mysql_online_addr
 };
 
 /** 通讯探测与 Online / com_alarm 写库策略 */

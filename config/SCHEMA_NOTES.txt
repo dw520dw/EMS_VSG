@@ -1,42 +1,46 @@
 Unified Modbus config: config/modbus/
   devices.json           -- 设备连接 + template 名（薄）
-  templates/<name>.json  -- 点表（read.fields + sink）
-  详见 config/modbus/README.txt
+  templates/<name>.json  -- 纯读点表（read.fields）
+  sink/<name>.json       -- 独立写库映射（field_maps + tables）
+  详见 config/README.txt
 
 分层（Telegraf 式标准化）：
-  read.fields[]  -- 绝对地址读 + 标定（唯一读表键名；无 points 别名）
-    fc / address / type / scale / bias / pt_exp / ct_exp
+  read.fields[]  -- 绝对地址读 + 标定（只含真实寄存器，无 virtual / virtual_comm）
+    fc / address / type / scale / bias
+    电表 PT/CT：模板根 pt_ct.{pt,ct,pt_ct} 字段名名单（不写进每条 fields）
     可选 cluster_stride（多簇：eff = address + (clusterIndex-1)*stride）
     可选 name（仅 C++ hook）；可选 bit（reg_bit）
-  sink           -- 写 MySQL
-    mode=sequential  -- 按 fields 中 write_mysql 顺序写 base_addr+0,1,2...
-    mode=explicit    -- 每点 db_addr（稀疏，如 dido）
+  sink/<template>.json -- 写 MySQL（与读层解耦）
+    field_maps  -- 显式 {name, addr}；可含 hook 派生点（Status/Power/灯等）
+    tables      -- mysql / mysql_prefix 路由到 field_map
+  comm           -- devices.json：探测 + mysql_online_addr 写在线标志（不再占读点表）
   引擎           -- 按 fc+address 自动合并连续读请求（无需 blocks/id）
                     读失败保留上轮 cache，不整轮清零
   英文字段 EN    -- 不在采集侧；见桌面 history_uploader（addr→en）
 
-devices[]  -- ess_meter / grid_meter / pcs_ylk / bamu_* / dido_1 / dido_2
+devices[]  -- load/dg/pv/ess_meter / sun_pv / agc / pcs_smarten / bamu_* / dido
   transport 仅允许 rtu|tcp；建总线的主设备需带 rtu_device 或 tcp_ip（从设备可共用总线省略）
   连接参数以 devices.json 为准；main / Config.h 不再传串口与 IP。
-  Loader 按 path+mtime 缓存（devices 与各 template 分别缓存）。
+  Loader 按 path+mtime 缓存（devices、各 template、各 sink 分别缓存）。
 
 Point types:
   u16 i16
   u32_hi_lo / i32_hi_lo   -- 高字在前（现有设备默认；u32/i32 同义）
   u32_lo_hi / i32_lo_hi   -- 低字在前（新设备扩展）
-  bit reg_bit virtual_comm virtual
+  bit reg_bit
 Value: raw * scale * (pt^pt_exp) * (ct^ct_exp) + bias
 
 加新电表：
-  1) 配 templates/xxx.json：read.fields（按落库顺序）+ sink.mode=sequential
-  2) devices.json 增加实例，template 指向该文件名（无 .json）
-  3) 无需 block id，无需手写 db_addr
+  1) 配 templates/xxx.json：read.fields（纯读）
+  2) 配 sink/xxx.json：field_maps 显式 {name,addr} + tables 路由
+  3) devices.json 增加实例，template 指向该文件名（无 .json）
 
 采集只写 MySQL 实时库。
 历史上传：桌面 history_uploader/
 
 PCS hybrid:
-  读层 JSON 遥测/告警；派生 pcs_ylk_energy；写层 pcs_ylk_control + 表驱动 pcs_set
-  （pcs_ylk_set_fields.inc：72 点 group/offset/absReg/type/scale）
+  读层 JSON 遥测/告警；派生量（Status/电量）只在 sink + hook setValue
 BAMU hybrid: 多引擎 + setClusterIndex；C++ 告警等级/DI/logic/单体
-DIDO hybrid: sink=explicit；C++ mask / DO 写寄存器 / logic
+DIDO hybrid: 稀疏 addr 写在 sink 显式映射；C++ mask / DO 写寄存器 / logic
+  通讯在线用 comm.mysql_online_addr，不进点表
+  空调 Online 是真实 DI 位，仍在模板和 sink

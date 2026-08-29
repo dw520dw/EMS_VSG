@@ -1,7 +1,6 @@
 {
   "field_maps": {
     "agc": [
-      { "name": "Online", "addr": 0 },
       { "name": "ABVoltage", "addr": 1 },
       { "name": "BCVoltage", "addr": 2 },
       { "name": "CAVoltage", "addr": 3 },

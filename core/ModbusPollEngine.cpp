@@ -57,7 +57,7 @@ ModbusPollEngine::ModbusPollEngine(IModbusBus& bus, ModbusDeviceProfile profile)
 
 /**
  * 多簇切换：把每个真实寄存器点的地址偏移到当前簇
- * （address = 第1簇基址 + (clusterIndex-1)*cluster_stride），virtual 点跳过，然后重建读计划。
+ * （address = 第1簇基址 + (clusterIndex-1)*cluster_stride），然后重建读计划。
  * 写库映射 write_points 与簇无关，各簇共用。
  */
 void ModbusPollEngine::setClusterIndex(int clusterIndex)
@@ -66,10 +66,6 @@ void ModbusPollEngine::setClusterIndex(int clusterIndex)
     for (size_t i = 0; i < profile_.points.size(); ++i)
     {
         auto& pt = profile_.points[i];
-        if (pt.type == ModbusPointType::Virtual || pt.type == ModbusPointType::VirtualComm)
-        {
-            continue;
-        }
         const int base = (i < fieldAddressBases_.size()) ? fieldAddressBases_[i] : pt.address;
         pt.address = base + (idx - 1) * pt.cluster_stride;
     }
@@ -78,7 +74,7 @@ void ModbusPollEngine::setClusterIndex(int clusterIndex)
 
 /**
  * 重建读计划：把读点表按 fc 分组、地址连续合并，生成最少的批量读请求（readPlan_），
- * 并预留 regCache_/bitCache_ 容量减少轮询时的 rehash。virtual/virtual_comm 点不占读请求。
+ * 并预留 regCache_/bitCache_ 容量减少轮询时的 rehash。
  */
 void ModbusPollEngine::rebuildReadPlan()
 {
@@ -93,10 +89,6 @@ void ModbusPollEngine::rebuildReadPlan()
 
     for (const auto& pt : profile_.points)
     {
-        if (pt.type == ModbusPointType::Virtual || pt.type == ModbusPointType::VirtualComm)
-        {
-            continue;
-        }
         Span s;
         s.fc = pt.fc;
         if (pt.type == ModbusPointType::Bit)
@@ -200,13 +192,13 @@ bool ModbusPollEngine::checkEnabled(IDataSink& sink)
 /**
  * 通讯探测与在线/离线处理：probe 探针读寄存器，连续失败超 fail_threshold 置离线
  * （写 Online=1 + com_alarm），离线时本轮返回 false 跳过采集；在线时清 com_alarm。
- * 通讯在线标志 commFlag_ 供 virtual_comm 点落库。
+ * 通讯在线标志 commFlag_ 由 writeRealtime 按 comm.mysql_online_addr 落库。
  */
 bool ModbusPollEngine::checkComm(IDataSink& sink)
 {
     const std::string table = profile_.resolvedMysqlTable();
 
-    // 离线时立刻写 Online/com_alarm；在线时 Online 由 writeRealtime 的 virtual_comm 落库，
+    // 离线时立刻写 Online/com_alarm；在线时 Online 由 writeRealtime 按 comm.mysql_online_addr 落库，
     // 这里只清 com_alarm（若配置了）。
     auto markOffline = [&]() {
         sink.updateValue(profile_.comm.mysql_online_addr, 1.0, table);
@@ -420,20 +412,11 @@ bool ModbusPollEngine::lookupBit(ModbusFc fc, int addr, uint8_t& out) const
 }
 
 /**
- * 单点原始解码：VirtualComm/Virtual 直接返回；Bit 查位缓存；
+ * 单点原始解码：Bit 查位缓存；
  * U16/I16/U32/I32 按字序组合（HI_LO=address 高字，LO_HI=address 低字）；RegBit 取字内位。
  */
 double ModbusPollEngine::decodeRaw(const ModbusPointDef& pt) const
 {
-    if (pt.type == ModbusPointType::VirtualComm)
-    {
-        return static_cast<double>(commFlag_);
-    }
-    if (pt.type == ModbusPointType::Virtual)
-    {
-        return 0.0;
-    }
-
     if (pt.type == ModbusPointType::Bit)
     {
         uint8_t b = 0;
@@ -509,32 +492,12 @@ double ModbusPollEngine::decodeRaw(const ModbusPointDef& pt) const
 
 /**
  * 把全部读点解码成工程值存入 values_（按 name 索引，供 hook/writeRealtime 取用）：
- * virtual 点保留 hook 上轮 setValue 的值，其余 = raw × scale × PT^pt_exp × CT^ct_exp + bias。
+ * 只覆盖本轮读到的寄存器点；hook setValue 的派生点保留在 values_ 中。
  */
 void ModbusPollEngine::decodePoints()
 {
-    std::unordered_map<std::string, double> keptVirtual;
     for (const auto& pt : profile_.points)
     {
-        if (pt.type == ModbusPointType::Virtual)
-        {
-            const auto it = values_.find(pt.name);
-            if (it != values_.end())
-            {
-                keptVirtual[pt.name] = it->second;
-            }
-        }
-    }
-
-    values_.clear();
-    for (const auto& pt : profile_.points)
-    {
-        if (pt.type == ModbusPointType::Virtual)
-        {
-            const auto it = keptVirtual.find(pt.name);
-            values_[pt.name] = (it != keptVirtual.end()) ? it->second : 0.0;
-            continue;
-        }
         const double raw = decodeRaw(pt);
         const double ptMul = (pt.pt_exp > 0) ? std::pow(pt_, pt.pt_exp) : 1.0;
         const double ctMul = (pt.ct_exp > 0) ? std::pow(ct_, pt.ct_exp) : 1.0;
@@ -548,9 +511,8 @@ void ModbusPollEngine::decodePoints()
  */
 void ModbusPollEngine::writeRealtime(IDataSink& sink)
 {
-    // 写库映射来自 config/modbus/sink/<template>.json 物化的 write_points（显式 {name,addr}）
     std::vector<std::pair<int, double>> points;
-    points.reserve(profile_.write_points.size());
+    points.reserve(profile_.write_points.size() + 1);
     for (const auto& wp : profile_.write_points)
     {
         const auto it = values_.find(wp.name);
@@ -559,12 +521,17 @@ void ModbusPollEngine::writeRealtime(IDataSink& sink)
             points.emplace_back(wp.addr, it->second);
         }
     }
+    // 通讯在线：devices.json comm.mysql_online_addr，不再占用读点表/sink 的 virtual_comm
+    if (profile_.comm.enabled && profile_.comm.mysql_online_addr >= 0)
+    {
+        points.emplace_back(profile_.comm.mysql_online_addr, static_cast<double>(commFlag_));
+    }
     sink.updateRealtime(profile_.resolvedMysqlTable(), points);
 }
 
 /**
  * 单轮采集流水线：使能检查 → 通讯探测 → PT/CT 同步 → 读寄存器 → 解码 → hook → 写库。
- * 即使本轮读失败仍写库（sticky cache + virtual_comm 保持 Online 语义），返回读是否成功。
+ * 即使本轮读失败仍写库（sticky cache + comm.mysql_online_addr），返回读是否成功。
  */
 bool ModbusPollEngine::pollOnce(IDataSink& sink)
 {
@@ -585,7 +552,7 @@ bool ModbusPollEngine::pollOnce(IDataSink& sink)
     {
         postDecodeHook_(*this, sink);
     }
-    // 即使本轮部分/全部读失败，仍写库：sticky cache + virtual_comm 保持 Online 语义
+    // 即使本轮部分/全部读失败，仍写库（sticky cache + comm.mysql_online_addr）
     writeRealtime(sink);
     return readOk;
 }

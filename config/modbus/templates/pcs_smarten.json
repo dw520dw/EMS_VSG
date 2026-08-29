@@ -1,9 +1,6 @@
 {
   "read": {
     "fields": [
-      { "name": "Online", "type": "virtual_comm" },
-      { "name": "Status", "type": "virtual" },
-      { "name": "OnGrid", "type": "virtual" },
       { "name": "APhaseVoltage", "type": "i16", "scale": 0.1, "fc": 3, "address": "0x9D08" },
       { "name": "BPhaseVoltage", "type": "i16", "scale": 0.1, "fc": 3, "address": "0x9D1F" },
       { "name": "CPhaseVoltage", "type": "i16", "scale": 0.1, "fc": 3, "address": "0x9D36" },
@@ -33,8 +30,6 @@
       { "name": "DCPower", "type": "i16", "scale": 0.1, "fc": 3, "address": "0xA372" },
       { "name": "DCCurrent", "type": "i16", "scale": 0.1, "fc": 3, "address": "0xA373" },
       { "name": "DCInputVoltage", "type": "i16", "scale": 0.1, "fc": 3, "address": "0xA374" },
-      { "name": "DCDischargeEnergy", "type": "virtual" },
-      { "name": "DCChargeEnergy", "type": "virtual" },
       { "name": "GridABLineVoltage", "type": "i16", "scale": 0.1, "fc": 3, "address": "0xA3BD" },
       { "name": "GridBCLineVoltage", "type": "i16", "scale": 0.1, "fc": 3, "address": "0xA3BE" },
       { "name": "GridCALineVoltage", "type": "i16", "scale": 0.1, "fc": 3, "address": "0xA3BF" },
@@ -81,8 +76,6 @@
       { "name": "LoadTotalReactivePower", "type": "i16", "scale": 0.1, "fc": 3, "address": "0xA3DC" },
       { "name": "LoadTotalPowerFactor", "type": "i16", "scale": 0.01, "fc": 3, "address": "0xA3DA" },
       { "name": "LoadFrequency", "type": "i16", "scale": 0.01, "fc": 3, "address": "0xA3DE" },
-      { "name": "ACDischargeEnergy", "type": "virtual" },
-      { "name": "ACChargeEnergy", "type": "virtual" },
       { "name": "DroopState", "type": "reg_bit", "bit": 1, "fc": 3, "address": "0xA2FF" },
       { "name": "SynchronizationState", "type": "reg_bit", "bit": 2, "fc": 3, "address": "0xA2FF" },
       { "name": "SynchronizationDoneState", "type": "reg_bit", "bit": 3, "fc": 3, "address": "0xA2FF" },

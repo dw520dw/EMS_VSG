@@ -61,7 +61,7 @@ ModbusFc parseFc(const json& j)
     throw std::runtime_error("invalid Modbus fc in config");
 }
 
-/** 解析点类型字符串 → ModbusPointType 枚举（u16/i16/u32_hi_lo/…/virtual）；非法抛异常。 */
+/** 解析点类型字符串 → ModbusPointType 枚举（u16/i16/u32_hi_lo/…/reg_bit）；非法抛异常。 */
 ModbusPointType parsePointType(const std::string& s)
 {
     if (s == "u16")
@@ -80,10 +80,13 @@ ModbusPointType parsePointType(const std::string& s)
         return ModbusPointType::Bit;
     if (s == "reg_bit")
         return ModbusPointType::RegBit;
-    if (s == "virtual_comm" || s == "comm")
-        return ModbusPointType::VirtualComm;
-    if (s == "virtual")
-        return ModbusPointType::Virtual;
+    if (s == "virtual_comm" || s == "comm" || s == "virtual")
+    {
+        throw std::runtime_error(
+            "point type '" + s +
+            "' 已移出读点表：通讯在线用 devices.json comm.mysql_online_addr；"
+            "派生量只写 sink 并由 hook setValue");
+    }
     throw std::runtime_error("invalid point type: " + s);
 }
 
@@ -101,16 +104,16 @@ int parseAddr(const json& j)
  * 解析读层 fields 数组（Telegraf 式绝对地址）。
  *
  * 每项典型形态：
- *   { "fc":3, "address":"0x61", "type":"i16", "scale":0.1, "pt_exp":1, "name":"可选" }
+ *   { "fc":3, "address":"0x61", "type":"i16", "scale":0.1, "name":"可选" }
  *
  * 字段说明：
  * - name           可选；给 C++ hook 的 getValue/setValue 用；缺省则生成 _f0/_f1...
- * - type           解码类型；默认 u16。virtual / virtual_comm 不读寄存器，无需 fc/address
- * - fc + address   真实测点必填；address 支持十进制或 "0x.." 字符串
+ * - type           解码类型；默认 u16（仅真实寄存器：u16/i16/bit/reg_bit/…）
+ * - fc + address   必填；address 支持十进制或 "0x.." 字符串
  * - cluster_stride 多簇地址步进（BMS 等）；运行时 address += (簇号-1)*stride
  * - bit            仅 reg_bit：字内位号 0..15
- * - scale / bias   工程值标定：raw * scale * PT^pt_exp * CT^ct_exp + bias
- * - pt_exp / ct_exp 是否乘以电表 PT/CT（0=不乘）
+ * - scale / bias   手册分辨率：raw * scale * PT^pt_exp * CT^ct_exp + bias
+ * - pt_exp / ct_exp 兼容旧点表的逐点覆盖；电表优先用模板根 pt_ct 名单
  *
  * 写库映射不在模板中：由 config/modbus/sink/<template>.json 的 field_maps 显式 {name,addr} 决定。
  */
@@ -132,18 +135,15 @@ void parseFields(const json& arr, std::vector<ModbusPointDef>& out)
 
         point.type = parsePointType(pt.value("type", std::string("u16")));
 
-        if (point.type != ModbusPointType::VirtualComm && point.type != ModbusPointType::Virtual)
+        if (!pt.contains("fc") || !pt.contains("address"))
         {
-            if (!pt.contains("fc") || !pt.contains("address"))
-            {
-                throw std::runtime_error("field " + point.name +
-                                         ": need fc+address (Telegraf style)");
-            }
-            point.fc = parseFc(pt["fc"]);
-            point.address = parseAddr(pt["address"]);
-            point.cluster_stride = pt.value("cluster_stride", 0);
-            point.bit = pt.value("bit", 0);
+            throw std::runtime_error("field " + point.name +
+                                     ": need fc+address (Telegraf style)");
         }
+        point.fc = parseFc(pt["fc"]);
+        point.address = parseAddr(pt["address"]);
+        point.cluster_stride = pt.value("cluster_stride", 0);
+        point.bit = pt.value("bit", 0);
 
         point.scale = pt.value("scale", 1.0);
         point.bias = pt.value("bias", 0.0);
@@ -163,6 +163,73 @@ void parseReadSection(const json& node, std::vector<ModbusPointDef>& points)
         throw std::runtime_error("missing read.fields");
     }
     parseFields(src["fields"], points);
+}
+
+/**
+ * 模板根 pt_ct：按字段名名单设置是否乘 PT/CT（不写进每条 fields）。
+ *   "pt": 只乘 PT    "ct": 只乘 CT    "pt_ct": 两者都乘
+ * 名单中的名字必须能在 read.fields 里找到，避免写错静默不乘。
+ */
+void applyPtCtNameList(const json& arr, std::vector<ModbusPointDef>& points, bool usePt,
+                       bool useCt, const std::string& deviceId, const char* listName)
+{
+    if (!arr.is_array())
+    {
+        throw std::runtime_error("device " + deviceId + ": pt_ct." + listName + " 必须是字符串数组");
+    }
+    for (const auto& item : arr)
+    {
+        const std::string name = item.get<std::string>();
+        bool found = false;
+        for (auto& pt : points)
+        {
+            if (pt.name != name)
+            {
+                continue;
+            }
+            if (usePt)
+            {
+                pt.pt_exp = 1;
+            }
+            if (useCt)
+            {
+                pt.ct_exp = 1;
+            }
+            found = true;
+            break;
+        }
+        if (!found)
+        {
+            throw std::runtime_error("device " + deviceId + ": pt_ct." + listName +
+                                     " 未知字段 " + name);
+        }
+    }
+}
+
+void applyPtCtSection(const json& node, std::vector<ModbusPointDef>& points,
+                      const std::string& deviceId)
+{
+    if (!node.contains("pt_ct"))
+    {
+        return;
+    }
+    const auto& s = node["pt_ct"];
+    if (!s.is_object())
+    {
+        throw std::runtime_error("device " + deviceId + ": pt_ct 必须是对象");
+    }
+    if (s.contains("pt"))
+    {
+        applyPtCtNameList(s["pt"], points, true, false, deviceId, "pt");
+    }
+    if (s.contains("ct"))
+    {
+        applyPtCtNameList(s["ct"], points, false, true, deviceId, "ct");
+    }
+    if (s.contains("pt_ct"))
+    {
+        applyPtCtNameList(s["pt_ct"], points, true, true, deviceId, "pt_ct");
+    }
 }
 
 /** 校验 transport 只允许 rtu|tcp；tcp_ip/rtu_device 等连接参数由业务侧建总线时校验。 */
@@ -296,12 +363,6 @@ void loadSinkWriteMap(const fs::path& devicesPath, const std::string& tplName,
         throw std::runtime_error("device " + p.id + ": 写库映射缺少 field_maps[" + mapName + "]");
     }
 
-    std::unordered_map<std::string, bool> known;
-    for (const auto& pt : p.points)
-    {
-        known[pt.name] = true;
-    }
-
     for (const auto& item : maps[mapName])
     {
         ModbusWritePoint wp;
@@ -310,11 +371,7 @@ void loadSinkWriteMap(const fs::path& devicesPath, const std::string& tplName,
         {
             throw std::runtime_error("device " + p.id + ": 写库映射项缺 name");
         }
-        if (!known.count(wp.name))
-        {
-            throw std::runtime_error("device " + p.id + ": 写点 " + wp.name +
-                                     " 不在模板 read.fields 中");
-        }
+        // name 可只在 sink：hook setValue 的派生点，不必出现在 read.fields
         wp.addr = item.value("addr", -1);
         if (wp.addr < 0)
         {
@@ -387,10 +444,11 @@ ModbusDeviceProfile parseDeviceObject(const json& dev, const fs::path& devicesPa
     }
 
     std::string tplName;
+    json tpl = json::object();
     if (dev.contains("template"))
     {
         tplName = dev.at("template").get<std::string>();
-        const json tpl = resolveTemplate(devicesPath, devicesRoot, tplName);
+        tpl = resolveTemplate(devicesPath, devicesRoot, tplName);
         parseReadSection(tpl, p.points);
     }
 
@@ -399,6 +457,9 @@ ModbusDeviceProfile parseDeviceObject(const json& dev, const fs::path& devicesPa
     {
         parseReadSection(dev, p.points);
     }
+
+    applyPtCtSection(tpl, p.points, p.id);
+    applyPtCtSection(dev, p.points, p.id);
 
     if (p.points.empty())
     {
